@@ -37,16 +37,18 @@ test('single item missing funding', (t) => {
 
 test('funding object missing url', (t) => {
   t.deepEqual(
-    getFundingInfo({ name: 'project',
-      dependencies: {
-        'single-item': {
+    getFundingInfo({
+      name: 'project',
+      edgesOut: new Map([
+        ['single-item', {
           name: 'single-item',
           version: '1.0.0',
           funding: {
             type: 'Foo'
           }
-        }
-      }}),
+        }]
+      ])
+    }),
     {
       name: 'project',
       dependencies: {},
@@ -59,14 +61,10 @@ test('funding object missing url', (t) => {
 
 test('use path if name is missing', (t) => {
   t.deepEqual(
-    getFundingInfo({ name: undefined,
-      path: '/tmp/foo',
-      children: {
-        'single-item': {
-          name: 'single-item',
-          version: '1.0.0'
-        }
-      }}),
+    getFundingInfo({
+      name: undefined,
+      path: '/tmp/foo'
+    }),
     {
       name: '/tmp/foo',
       dependencies: {},
@@ -80,16 +78,22 @@ test('use path if name is missing', (t) => {
 test('single item tree', (t) => {
   t.deepEqual(
     getFundingInfo({ name: 'project',
-      dependencies: {
-        'single-item': {
-          name: 'single-item',
-          version: '1.0.0',
-          funding: {
-            type: 'foo',
-            url: 'http://example.com'
+      edgesOut: new Map([
+        ['single-item', {
+          to: {
+            name: 'single-item',
+            package: {
+              name: 'single-item',
+              version: '1.0.0',
+              funding: {
+                type: 'foo',
+                url: 'http://example.com'
+              }
+            }
           }
-        }
-      }}),
+        }]
+      ])
+    }),
     {
       name: 'project',
       dependencies: {
@@ -110,8 +114,11 @@ test('single item tree', (t) => {
 
 test('top-level funding info', (t) => {
   t.deepEqual(
-    getFundingInfo({ name: 'project',
-      funding: 'http://example.com'
+    getFundingInfo({
+      name: 'project',
+      package: {
+        funding: 'http://example.com'
+      }
     }),
     {
       name: 'project',
@@ -128,14 +135,21 @@ test('top-level funding info', (t) => {
 
 test('use string shorthand', (t) => {
   t.deepEqual(
-    getFundingInfo({ name: 'project',
-      dependencies: {
-        'single-item': {
-          name: 'single-item',
-          version: '1.0.0',
-          funding: 'http://example.com'
-        }
-      }}),
+    getFundingInfo({
+      name: 'project',
+      edgesOut: new Map([
+        ['single-item', {
+          to: {
+            name: 'single-item',
+            package: {
+              name: 'single-item',
+              version: '1.0.0',
+              funding: 'http://example.com'
+            }
+          }
+        }]
+      ])
+    }),
     {
       name: 'project',
       dependencies: {
@@ -155,64 +169,98 @@ test('use string shorthand', (t) => {
 
 test('duplicate items along the tree', (t) => {
   t.deepEqual(
-    getFundingInfo({ name: 'project',
-      version: '2.3.4',
-      dependencies: {
-        'single-item': {
-          name: 'single-item',
-          version: '1.0.0',
-          funding: {
-            type: 'foo',
-            url: 'https://example.com'
-          },
-          dependencies: {
-            'shared-top-first': {
-              name: 'shared-top-first',
+    getFundingInfo({
+      name: 'project',
+      package: {
+        version: '2.3.4'
+      },
+      edgesOut: new Map([
+        ['single-item', {
+          to: {
+            name: 'single-item',
+            package: {
+              name: 'single-item',
               version: '1.0.0',
               funding: {
                 type: 'foo',
                 url: 'https://example.com'
               }
             },
-            'sub-dep': {
-              name: 'sub-dep',
-              version: '1.0.0',
-              funding: {
-                type: 'foo',
-                url: 'https://example.com'
-              },
-              dependencies: {
-                'shared-nested-first': {
-                  name: 'shared-nested-first',
-                  version: '1.0.0',
-                  funding: {
-                    type: 'foo',
-                    url: 'https://example.com'
-                  },
-                  dependencies: {
-                    'shared-top-first': {
-                      name: 'shared-top-first',
-                      version: '1.0.0',
-                      funding: {
-                        type: 'foo',
-                        url: 'https://example.com'
-                      }
+            edgesOut: new Map([
+              ['shared-top-first', {
+                to: {
+                  name: 'shared-top-first',
+                  package: {
+                    name: 'shared-top-first',
+                    version: '1.0.0',
+                    funding: {
+                      type: 'foo',
+                      url: 'https://example.com'
                     }
                   }
                 }
-              }
-            },
-            'shared-nested-first': {
-              name: 'shared-nested-first',
-              version: '1.0.0',
-              funding: {
-                type: 'foo',
-                url: 'https://example.com'
-              }
-            }
+              }],
+              ['sub-dep', {
+                to: {
+                  name: 'sub-dep',
+                  package: {
+                    name: 'sub-dep',
+                    version: '1.0.0',
+                    funding: {
+                      type: 'foo',
+                      url: 'https://example.com'
+                    }
+                  },
+                  edgesOut: new Map([
+                    ['shared-nested-first', {
+                      to: {
+                        name: 'shared-nested-first',
+                        package: {
+                          name: 'shared-nested-first',
+                          version: '1.0.0',
+                          funding: {
+                            type: 'foo',
+                            url: 'https://example.com'
+                          }
+                        },
+                        edgesOut: new Map([
+                          ['shared-top-first', {
+                            to: {
+                              name: 'shared-top-first',
+                              package: {
+                                name: 'shared-top-first',
+                                version: '1.0.0',
+                                funding: {
+                                  type: 'foo',
+                                  url: 'https://example.com'
+                                }
+                              }
+                            }
+                          }]
+                        ])
+                      }
+                    }]
+                  ])
+                }
+              }],
+              ['shared-nested-first', {
+                to: {
+                  name: 'shared-nested-first',
+                  package: {
+                    name: 'shared-nested-first',
+                    version: '1.0.0',
+                    funding: {
+                      type: 'foo',
+                      url: 'https://example.com'
+                    }
+                  }
+                }
+              }]
+            ])
           }
-        }
-      }}),
+        }]
+      ])
+    }),
     {
       name: 'project',
       version: '2.3.4',
@@ -257,38 +305,55 @@ test('duplicate items along the tree', (t) => {
 
 test('multi-level nested items tree', (t) => {
   t.deepEqual(
-    getFundingInfo({ name: 'project',
-      dependencies: {
-        'first-level-dep': {
-          name: 'first-level-dep',
-          version: '1.0.0',
-          funding: {
-            type: 'foo',
-            url: 'https://example.com'
-          },
-          dependencies: {
-            'sub-dep': {
-              name: 'sub-dep',
+    getFundingInfo({
+      name: 'project',
+      edgesOut: new Map([
+        ['first-level-dep', {
+          to: {
+            name: 'first-level-dep',
+            package: {
+              name: 'first-level-dep',
               version: '1.0.0',
               funding: {
                 type: 'foo',
                 url: 'https://example.com'
-              },
-              dependencies: {
-                package: {
-                  name: 'sub-sub-dep',
-                  version: '1.0.0',
-                  funding: {
-                    type: 'foo',
-                    url: 'https://example.com'
-                  },
-                  dependencies: {}
-                }
               }
-            }
+            },
+            edgesOut: new Map([
+              ['sub-dep', {
+                to: {
+                  name: 'sub-dep',
+                  package: {
+                    name: 'sub-dep',
+                    version: '1.0.0',
+                    funding: {
+                      type: 'foo',
+                      url: 'https://example.com'
+                    }
+                  },
+                  edgesOut: new Map([
+                    ['sub-sub-dep', {
+                      to: {
+                        name: 'sub-sub-dep',
+                        package: {
+                          name: 'sub-sub-dep',
+                          version: '1.0.0',
+                          funding: {
+                            type: 'foo',
+                            url: 'https://example.com'
+                          }
+                        },
+                        edgesOut: new Map()
+                      }
+                    }]
+                  ])
+                }
+              }]
+            ])
           }
-        }
-      }}),
+        }]
+      ])
+    }),
     {
       name: 'project',
       dependencies: {
@@ -327,81 +392,128 @@ test('multi-level nested items tree', (t) => {
 
 test('missing fund nested items tree', (t) => {
   t.deepEqual(
-    getFundingInfo({ name: 'project',
-      dependencies: {
-        'first-level-dep': {
-          name: 'first-level-dep',
-          version: '1.0.0',
-          funding: {
-            type: 'foo'
-          },
-          dependencies: {
-            'sub-dep': {
-              name: 'sub-dep',
+    getFundingInfo({
+      name: 'project',
+      edgesOut: new Map([
+        ['first-level-dep', {
+          to: {
+            name: 'first-level-dep',
+            package: {
+              name: 'first-level-dep',
               version: '1.0.0',
-              dependencies: {
-                'sub-sub-dep-01': {
-                  name: 'sub-sub-dep-01',
-                  version: '1.0.0',
-                  funding: {
-                    type: 'foo',
-                    url: 'https://example.com'
+              funding: {
+                type: 'foo'
+              }
+            },
+            edgesOut: new Map([
+              ['sub-dep', {
+                to: {
+                  name: 'sub-dep',
+                  package: {
+                    name: 'sub-dep',
+                    version: '1.0.0'
                   },
-                  dependencies: {
-                    'non-funding-child': {
-                      name: 'non-funding-child',
-                      version: '1.0.0',
-                      dependencies: {
-                        'sub-sub-sub-dep': {
-                          name: 'sub-sub-sub-dep',
+                  edgesOut: new Map([
+                    ['sub-sub-dep-01', {
+                      to: {
+                        name: 'sub-sub-dep-01',
+                        package: {
+                          name: 'sub-sub-dep-01',
                           version: '1.0.0',
                           funding: {
                             type: 'foo',
                             url: 'https://example.com'
                           }
-                        }
+                        },
+                        edgesOut: new Map([
+                          ['non-funding-child', {
+                            to: {
+                              name: 'non-funding-child',
+                              package: {
+                                name: 'non-funding-child',
+                                version: '1.0.0'
+                              },
+                              edgesOut: new Map([
+                                ['sub-sub-sub-dep', {
+                                  to: {
+                                    name: 'sub-sub-sub-dep',
+                                    package: {
+                                      name: 'sub-sub-sub-dep',
+                                      version: '1.0.0',
+                                      funding: {
+                                        type: 'foo',
+                                        url: 'https://example.com'
+                                      }
+                                    }
+                                  }
+                                }]
+                              ])
+                            }
+                          }]
+                        ])
                       }
-                    }
-                  }
-                },
-                'sub-sub-dep-02': {
-                  name: 'sub-sub-dep-02',
-                  version: '1.0.0',
-                  funding: {
-                    type: 'foo',
-                    url: 'https://example.com'
-                  },
-                  dependencies: {}
-                },
-                'sub-sub-dep-03': {
-                  name: 'sub-sub-dep-03',
-                  version: '1.0.0',
-                  funding: {
-                    type: 'foo',
-                    url: 'git://example.git'
-                  },
-                  dependencies: {
-                    'sub-sub-sub-dep-03': {
-                      name: 'sub-sub-sub-dep-03',
-                      version: '1.0.0',
-                      dependencies: {
-                        'sub-sub-sub-sub-dep': {
-                          name: 'sub-sub-sub-sub-dep',
+                    }],
+                    ['sub-sub-dep-02', {
+                      to: {
+                        name: 'sub-sub-dep-02',
+                        package: {
+                          name: 'sub-sub-dep-02',
                           version: '1.0.0',
                           funding: {
                             type: 'foo',
-                            url: 'http://example.com'
+                            url: 'https://example.com'
                           }
-                        }
+                        },
+                        edgesOut: new Map()
                       }
-                    }
-                  }
+                    }],
+                    ['sub-sub-dep-03', {
+                      to: {
+                        name: 'sub-sub-dep-03',
+                        package: {
+                          name: 'sub-sub-dep-03',
+                          version: '1.0.0',
+                          funding: {
+                            type: 'foo',
+                            url: 'git://example.git'
+                          }
+                        },
+                        edgesOut: new Map([
+                          ['sub-sub-sub-dep-03', {
+                            to: {
+                              name: 'sub-sub-sub-dep-03',
+                              package: {
+                                name: 'sub-sub-sub-dep-03',
+                                version: '1.0.0'
+                              },
+                              edgesOut: new Map([
+                                ['sub-sub-sub-sub-dep', {
+                                  to: {
+                                    name: 'sub-sub-sub-sub-dep',
+                                    package: {
+                                      name: 'sub-sub-sub-sub-dep',
+                                      version: '1.0.0',
+                                      funding: {
+                                        type: 'foo',
+                                        url: 'http://example.com'
+                                      }
+                                    }
+                                  }
+                                }]
+                              ])
+                            }
+                          }]
+                        ])
+                      }
+                    }]
+                  ])
                 }
-              }
-            }
+              }]
+            ])
           }
-        }
-      }}),
+        }]
+      ])
+    }),
     {
       name: 'project',
       dependencies: {
@@ -445,45 +557,67 @@ test('missing fund nested items tree', (t) => {
 
 test('countOnly option', (t) => {
   t.deepEqual(
-    getFundingInfo({ name: 'project',
-      dependencies: {
-        'first-level-dep': {
-          name: 'first-level-dep',
-          version: '1.0.0',
-          funding: {
-            type: 'foo'
-          },
-          dependencies: {
-            'sub-dep': {
-              name: 'sub-dep',
+    getFundingInfo({
+      name: 'project',
+      edgesOut: new Map([
+        ['first-level-dep', {
+          to: {
+            name: 'first-level-dep',
+            package: {
+              name: 'first-level-dep',
               version: '1.0.0',
               funding: {
-                type: 'foo',
-                url: 'https://example.com'
-              },
-              dependencies: {
-                'sub-sub-dep': {
-                  name: 'sub-sub-dep',
-                  version: '1.0.0',
-                  funding: {
-                    type: 'foo',
-                    url: 'https://example.com'
-                  }
-                },
-                dependencies: {}
+                type: 'foo'
               }
             },
-            'sub-sub-dep': {
-              name: 'sub-sub-dep',
-              version: '1.0.0',
-              funding: {
-                type: 'foo',
-                url: 'https://example.com'
-              }
-            }
+            edgesOut: new Map([
+              ['sub-dep', {
+                to: {
+                  name: 'sub-dep',
+                  package: {
+                    name: 'sub-dep',
+                    version: '1.0.0',
+                    funding: {
+                      type: 'foo',
+                      url: 'https://example.com'
+                    }
+                  },
+                  edgesOut: new Map([
+                    ['sub-sub-dep', {
+                      to: {
+                        name: 'sub-sub-dep',
+                        package: {
+                          name: 'sub-sub-dep',
+                          version: '1.0.0',
+                          funding: {
+                            type: 'foo',
+                            url: 'https://example.com'
+                          }
+                        },
+                        edgesOut: new Map()
+                      }
+                    }]
+                  ])
+                }
+              }],
+              ['sub-sub-dep', {
+                to: {
+                  name: 'sub-sub-dep',
+                  package: {
+                    name: 'sub-sub-dep',
+                    version: '1.0.0',
+                    funding: {
+                      type: 'foo',
+                      url: 'https://example.com'
+                    }
+                  }
+                }
+              }]
+            ])
           }
-        }
-      }}, { countOnly: true }),
+        }]
+      ])
+    }, { countOnly: true }),
     {
       length: 2
     },
@@ -494,49 +628,76 @@ test('countOnly option', (t) => {
 
 test('handle different versions', (t) => {
   t.deepEqual(
-    getFundingInfo({ name: 'project',
-      dependencies: {
-        foo: {
-          name: 'foo',
-          version: '1.0.0',
-          funding: {
-            type: 'foo',
-            url: 'https://example.com'
-          },
-          dependencies: {
-            bar: {
-              name: 'bar',
+    getFundingInfo({
+      name: 'project',
+      edgesOut: new Map([
+        ['foo', {
+          to: {
+            name: 'foo',
+            package: {
+              name: 'foo',
               version: '1.0.0',
               funding: {
                 type: 'foo',
                 url: 'https://example.com'
               }
-            }
-          }
-        },
-        lorem: {
-          dependencies: {
-            fooo: {
-              name: 'foo',
-              version: '2.0.0',
-              funding: {
-                type: 'foo',
-                url: 'https://example.com'
-              },
-              dependencies: {
-                'foo-bar': {
-                  name: 'foo-bar',
-                  version: '1.0.0',
-                  funding: {
-                    type: 'foo',
-                    url: 'https://example.com'
+            },
+            edgesOut: new Map([
+              ['bar', {
+                to: {
+                  name: 'bar',
+                  package: {
+                    name: 'bar',
+                    version: '1.0.0',
+                    funding: {
+                      type: 'foo',
+                      url: 'https://example.com'
+                    }
                   }
                 }
-              }
-            }
+              }]
+            ])
           }
-        }
-      }
+        }],
+        ['lorem', {
+          to: {
+            name: 'lorem',
+            package: {
+              name: 'lorem'
+            },
+            edgesOut: new Map([
+              ['foo', {
+                to: {
+                  name: 'foo',
+                  package: {
+                    name: 'foo',
+                    version: '2.0.0',
+                    funding: {
+                      type: 'foo',
+                      url: 'https://example.com'
+                    }
+                  },
+                  edgesOut: new Map([
+                    ['foo-bar', {
+                      to: {
+                        name: 'foo-bar',
+                        package: {
+                          name: 'foo-bar',
+                          version: '1.0.0',
+                          funding: {
+                            type: 'foo',
+                            url: 'https://example.com'
+                          }
+                        }
+                      }
+                    }]
+                  ])
+                }
+              }]
+            ])
+          }
+        }]
+      ])
     }, { countOnly: true }),
     {
       length: 4
