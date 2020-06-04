@@ -145,6 +145,46 @@ const nestedMultipleFundingPackages = {
   }
 }
 
+const conflictingFundingPackages = {
+  'package.json': JSON.stringify({
+    name: 'conflicting-funding-packages',
+    version,
+    dependencies: {
+      foo: '1.0.0'
+    },
+    devDependencies: {
+      bar: '1.0.0'
+    }
+  }),
+  node_modules: {
+    foo: {
+      'package.json': JSON.stringify({
+        name: 'foo',
+        version: '1.0.0',
+        funding: 'http://example.com/1'
+      })
+    },
+    bar: {
+      node_modules: {
+        foo: {
+          'package.json': JSON.stringify({
+            name: 'foo',
+            version: '2.0.0',
+            funding: 'http://example.com/2'
+          })
+        }
+      },
+      'package.json': JSON.stringify({
+        name: 'bar',
+        version: '1.0.0',
+        dependencies: {
+          foo: '2.0.0'
+        }
+      })
+    }
+  }
+}
+
 test('fund with no package containing funding', t => {
   const cwd = t.testdir({
     'package.json': JSON.stringify({
@@ -375,6 +415,16 @@ test('fund using nested packages with multiple sources, with a source number', t
     { cwd }
   )
   t.matchSnapshot(stdout.toString(), 'should open the numbered URL')
+  t.end()
+})
+
+test('fund using pkg name while having conflicting versions', t => {
+  const cwd = t.testdir(conflictingFundingPackages)
+  const stdout = execSync(
+    `${process.execPath} ${bin} fund foo --which=1 --no-browser`,
+    { cwd }
+  )
+  t.matchSnapshot(stdout.toString(), 'should open greatest version')
   t.end()
 })
 

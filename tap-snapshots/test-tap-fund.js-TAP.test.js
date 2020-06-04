@@ -44,6 +44,13 @@ http://example.com/donate
 
 `
 
+exports[`test/tap/fund.js TAP fund using pkg name while having conflicting versions > should open greatest version 1`] = `
+Funding available at the following URL:
+
+http://example.com/2
+
+`
+
 exports[`test/tap/fund.js TAP fund using string shorthand > should open string-only url 1`] = `
 Funding available at the following URL:
 
