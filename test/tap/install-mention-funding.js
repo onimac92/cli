@@ -3,7 +3,7 @@ const path = require('path')
 // TODO: needs to poke into arborist to figure out if the old test cases are
 // not working anymore due to `file:../` usage, if that's not the case just
 // update the current failing test cases here with something more accurate
-const { test, skip } = require('tap')
+const { test } = require('tap')
 const Tacks = require('tacks')
 const Dir = Tacks.Dir
 const File = Tacks.File
@@ -77,7 +77,7 @@ test('mention npm fund upon installing single dependency', function (t) {
   })
 })
 
-skip('mention npm fund upon installing multiple dependencies', function (t) {
+test('mention npm fund upon installing multiple dependencies', function (t) {
   setup(t)
   common.npm(['install', '--no-save', multiplePackages], {cwd: base}, function (err, code, stdout, stderr) {
     if (err) throw err
@@ -101,14 +101,14 @@ test('skips mention npm fund using --no-fund option', function (t) {
   })
 })
 
-skip('mention packages looking for funding using --json', function (t) {
+test('mention packages looking for funding using --json', function (t) {
   setup(t)
   common.npm(['install', '--no-save', '--json', multiplePackages], {cwd: base}, function (err, code, stdout, stderr) {
     if (err) throw err
     t.is(code, 0, 'installed successfully')
     t.is(stderr, '', 'no warnings')
     const res = JSON.parse(stdout)
-    t.match(res.funding, '4 packages are looking for funding', 'should print amount of packages needing funding')
+    t.match(res.funding, 4, 'should print amount of packages needing funding')
     t.end()
   })
 })
