@@ -16,9 +16,8 @@ nested-no-funding-packages@1.0.0
 `
 
 exports[`test/tap/fund.js TAP fund in which same maintainer owns all its deps > should print stack packages together 1`] = `
-maintainer-owns-all-deps@1.0.0
-\`-- http://example.com/donate
-    \`-- maintainer-owns-all-deps@1.0.0, dep-foo@1.0.0, dep-bar@1.0.0, dep-sub-foo@1.0.0
+http://example.com/donate
+  \`-- maintainer-owns-all-deps@1.0.0, dep-foo@1.0.0, dep-sub-foo@1.0.0, dep-bar@1.0.0
 
 
 `
