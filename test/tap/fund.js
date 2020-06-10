@@ -408,6 +408,93 @@ test('fund using nested packages with multiple sources', t => {
   t.end()
 })
 
+test('fund using symlink ref', t => {
+  const cwd = t.testdir({
+    'package.json': JSON.stringify({
+      name: 'using-symlink-ref',
+      version: '1.0.0'
+    }),
+    'a': {
+      'package.json': JSON.stringify({
+        name: 'a',
+        version: '1.0.0',
+        funding: 'http://example.com/a'
+      })
+    },
+    node_modules: {
+      a: t.fixture('symlink', '../a')
+    }
+  })
+
+  // using symlinked ref
+  t.match(
+    execSync(
+      `${process.execPath} ${bin} fund ./node_modules/a --no-browser`,
+      { cwd }
+    ).toString(),
+    'http://example.com/a',
+    'should retrieve funding url from symlink'
+  )
+
+  // using target ref
+  t.match(
+    execSync(
+      `${process.execPath} ${bin} fund ./a --no-browser`,
+      { cwd }
+    ).toString(),
+    'http://example.com/a',
+    'should retrieve funding url from symlink target'
+  )
+
+  t.end()
+})
+
+test('fund using data from actual tree', t => {
+  const cwd = t.testdir({
+    'package.json': JSON.stringify({
+      name: 'using-actual-tree',
+      version: '1.0.0'
+    }),
+    node_modules: {
+      a: {
+        'package.json': JSON.stringify({
+          name: 'a',
+          version: '1.0.0',
+          funding: 'http://example.com/a'
+        })
+      },
+      b: {
+        'package.json': JSON.stringify({
+          name: 'a',
+          version: '1.0.0',
+          funding: 'http://example.com/b'
+        }),
+        node_modules: {
+          a: {
+            'package.json': JSON.stringify({
+              name: 'a',
+              version: '1.0.1',
+              funding: 'http://example.com/_AAA'
+            })
+          }
+        }
+      }
+    }
+  })
+
+  // using symlinked ref
+  t.match(
+    execSync(
+      `${process.execPath} ${bin} fund a --no-browser`,
+      { cwd }
+    ).toString(),
+    'http://example.com/_AAA',
+    'should retrieve fund info from actual tree, using greatest version found'
+  )
+
+  t.end()
+})
+
 test('fund using nested packages with multiple sources, with a source number', t => {
   const cwd = t.testdir(nestedMultipleFundingPackages)
   const stdout = execSync(
